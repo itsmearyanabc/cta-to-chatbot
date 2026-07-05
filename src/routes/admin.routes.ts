@@ -23,12 +23,15 @@ router.post('/login', async (req: Request, res: Response) => {
     return;
   }
 
-  const token = await AuthService.login(username, password);
-  if (!token) {
-    console.log('[DEBUG] AuthService.login returned null');
-    res.status(401).json({ error: 'Invalid username or password' });
+  const result = await AuthService.login(username, password);
+  if (!result.token) {
+    console.log('[DEBUG] AuthService.login failed:', result.error);
+    const status = result.error?.includes('Database') ? 500 : 401;
+    res.status(status).json({ error: result.error || 'Invalid username or password' });
     return;
   }
+
+  const token = result.token;
 
   // Set JWT as HTTP-only cookie (secure in production)
   res.cookie('token', token, {

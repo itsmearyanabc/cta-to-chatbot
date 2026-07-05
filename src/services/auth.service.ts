@@ -30,19 +30,30 @@ export class AuthService {
         )
       `);
 
-      // Check if any admin exists
+      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+      // Check if the configured admin exists
       const [rows] = await conn.query<mysql.RowDataPacket[]>(
-        'SELECT COUNT(*) as count FROM admin_users'
+        'SELECT * FROM admin_users WHERE username = ?',
+        [adminUsername]
       );
 
-      if (rows[0].count === 0) {
+      const hash = await bcrypt.hash(adminPassword, 12);
+      if (rows.length === 0) {
         // Seed default admin account
-        const hash = await bcrypt.hash('admin123', 12);
         await conn.query(
           'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
-          ['admin', hash]
+          [adminUsername, hash]
         );
-        console.log('👤 Default admin account created (admin / admin123)');
+        console.log(`👤 Admin account created (username: "${adminUsername}")`);
+      } else {
+        // Update its password just in case it was changed in .env
+        await conn.query(
+          'UPDATE admin_users SET password_hash = ? WHERE username = ?',
+          [hash, adminUsername]
+        );
+        console.log(`👤 Admin account updated/verified (username: "${adminUsername}")`);
       }
 
       conn.release();
@@ -54,12 +65,12 @@ export class AuthService {
   }
 
   /**
-   * Authenticate an admin user. Returns a JWT token on success, null on failure.
+   * Authenticate an admin user. Returns an object with token on success, error on failure.
    */
-  static async login(username: string, password: string): Promise<string | null> {
+  static async login(username: string, password: string): Promise<{ token: string | null; error?: string }> {
     if (!pool) {
       console.log('[DEBUG] AuthService.login failed: pool is null');
-      return null;
+      return { token: null, error: 'Database connection is not initialized. Please verify DB credentials in environment variables.' };
     }
     try {
       const [rows] = await pool.query<mysql.RowDataPacket[]>(
@@ -69,7 +80,7 @@ export class AuthService {
 
       if (rows.length === 0) {
         console.log('[DEBUG] AuthService.login failed: User not found in DB');
-        return null;
+        return { token: null, error: 'Invalid username or password' };
       }
 
       const user = rows[0];
@@ -79,7 +90,7 @@ export class AuthService {
 
       if (!isMatch) {
         console.log('[DEBUG] AuthService.login failed: Password mismatch');
-        return null;
+        return { token: null, error: 'Invalid username or password' };
       }
 
       // Generate JWT
@@ -90,10 +101,10 @@ export class AuthService {
       );
 
       console.log('[DEBUG] AuthService.login succeeded');
-      return token;
+      return { token };
     } catch (error: any) {
       console.error('[DEBUG] AuthService.login error:', error.message);
-      return null;
+      return { token: null, error: `Database error: ${error.message}` };
     }
   }
 
