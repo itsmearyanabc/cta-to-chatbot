@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — WhatsApp AI Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface-hover: #222233;
+      --border: rgba(255,255,255,0.08);
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --accent: #7c3aed;
+      --accent-light: #a855f7;
+      --green: #22c55e;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ---- Layout ---- */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 10;
+    }
+
+    .sidebar .logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      padding: 0 8px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .sidebar .logo span { color: var(--accent-light); }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s;
+      margin-bottom: 4px;
+    }
+
+    .nav-item:hover { background: var(--surface-hover); color: #fff; }
+    .nav-item.active { background: rgba(124,58,237,0.15); color: var(--accent-light); }
+    .nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-item.logout { color: var(--red); }
+    .nav-item.logout:hover { background: rgba(239,68,68,0.1); }
+
+    .main {
+      margin-left: 240px;
+      flex: 1;
+      padding: 32px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #fff;
+    }
+
+    /* ---- Cards ---- */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .card .card-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .card .card-value {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge.red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge.orange { background: rgba(245,158,11,0.15); color: var(--orange); }
+
+    /* ---- Toggle Switch ---- */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: #444;
+      border-radius: 28px;
+      transition: background 0.3s;
+    }
+
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      width: 22px; height: 22px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+
+    .toggle input:checked + .slider { background: var(--green); }
+    .toggle input:checked + .slider::before { transform: translateX(24px); }
+
+    .toggle-label {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    /* ---- Sections / Panels ---- */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* ---- Forms ---- */
+    .form-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .form-section h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    .form-row {
+      margin-bottom: 18px;
+    }
+
+    .form-row label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-row input,
+    .form-row textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-row input:focus,
+    .form-row textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .form-row textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(124,58,237,0.3);
+    }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.15);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    /* ---- Toast Notification ---- */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+
+    /* ---- Chat History ---- */
+    .chat-list {
+      list-style: none;
+    }
+
+    .chat-list-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .chat-list-item:hover { background: var(--surface-hover); }
+
+    .chat-avatar {
+      width: 42px; height: 42px;
+      background: rgba(124,58,237,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .chat-info { flex: 1; overflow: hidden; }
+    .chat-info .chat-name { font-weight: 600; font-size: 14px; color: #fff; }
+    .chat-info .chat-preview { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .chat-meta {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .chat-meta .chat-time { font-size: 12px; color: var(--text-muted); }
+    .chat-meta .chat-count { font-size: 11px; color: var(--accent-light); font-weight: 600; }
+
+    /* Chat Detail */
+    .chat-detail-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .chat-detail-header .back-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s;
+    }
+
+    .chat-detail-header .back-btn:hover { background: var(--surface-hover); }
+
+    .messages-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .message {
+      margin-bottom: 12px;
+      max-width: 75%;
+    }
+
+    .message.user { margin-left: auto; text-align: right; }
+    .message.model { margin-right: auto; }
+
+    .message .bubble {
+      display: inline-block;
+      padding: 10px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .message.user .bubble {
+      background: var(--accent);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.model .bubble {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .no-chats {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .no-chats .icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 16px; }
+      .cards-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="logo">🤖 <span>Bot</span>Admin</div>
+      <div class="nav-item active" data-section="dashboard">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" data-section="settings">
+        <span class="icon">⚙️</span> Settings
+      </div>
+      <div class="nav-item" data-section="conversations">
+        <span class="icon">💬</span> Conversations
+      </div>
+      <div class="nav-item" data-section="account">
+        <span class="icon">👤</span> Account
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="nav-item logout" id="logoutBtn">
+        <span class="icon">🚪</span> Logout
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main">
+
+      <!-- ============ DASHBOARD ============ -->
+      <div class="section active" id="section-dashboard">
+        <h1 class="page-title">Dashboard</h1>
+
+        <!-- Bot Toggle -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="toggle-container">
+            <label class="toggle">
+              <input type="checkbox" id="botToggle">
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label" id="botToggleLabel">Bot is loading...</span>
+          </div>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-label">Database</div>
+            <div class="card-value" id="statusDb">Loading...</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Gemini AI</div>
+            <div class="card-value" id="statusAi">Loading...</div>
+          </div>
+          <div class="card">
+            <div class="card-label">WhatsApp API</div>
+            <div class="card-value" id="statusWa">Loading...</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Server</div>
+            <div class="card-value"><span class="badge green">Online</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SETTINGS ============ -->
+      <div class="section" id="section-settings">
+        <h1 class="page-title">Settings</h1>
+
+        <div class="form-section">
+          <h3>🟢 WhatsApp Configuration</h3>
+          <div class="form-row">
+            <label>WhatsApp Access Token</label>
+            <input type="password" id="cfg-WHATSAPP_ACCESS_TOKEN" placeholder="Paste your WhatsApp access token">
+          </div>
+          <div class="form-row">
+            <label>WhatsApp Phone Number ID</label>
+            <input type="text" id="cfg-WHATSAPP_PHONE_NUMBER_ID" placeholder="e.g. 123456789012345">
+          </div>
+          <div class="form-row">
+            <label>Meta Verify Token</label>
+            <input type="text" id="cfg-META_VERIFY_TOKEN" placeholder="Your webhook verify token">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>🧠 AI Configuration</h3>
+          <div class="form-row">
+            <label>Gemini API Key</label>
+            <input type="password" id="cfg-GEMINI_API_KEY" placeholder="Your Google Gemini API key">
+          </div>
+          <div class="form-row">
+            <label>System Prompt (AI Personality)</label>
+            <textarea id="cfg-SYSTEM_PROMPT" placeholder="Define how the AI should behave..."></textarea>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="saveSettingsBtn">💾 Save Settings</button>
+      </div>
+
+      <!-- ============ CONVERSATIONS ============ -->
+      <div class="section" id="section-conversations">
+        <h1 class="page-title">Conversations</h1>
+
+        <!-- Chat List View -->
+        <div id="chatListView">
+          <ul class="chat-list" id="chatList"></ul>
+        </div>
+
+        <!-- Chat Detail View -->
+        <div id="chatDetailView" style="display:none;">
+          <div class="chat-detail-header">
+            <button class="back-btn" id="backToList">← Back</button>
+            <h2 id="chatDetailTitle" style="font-size: 18px; font-weight: 600; color: #fff;"></h2>
+          </div>
+          <div class="messages-container" id="messagesContainer"></div>
+        </div>
+      </div>
+
+      <!-- ============ ACCOUNT ============ -->
+      <div class="section" id="section-account">
+        <h1 class="page-title">Account</h1>
+
+        <div class="form-section">
+          <h3>🔒 Change Password</h3>
+          <div class="form-row">
+            <label>Current Password</label>
+            <input type="password" id="currentPassword" placeholder="Enter current password">
+          </div>
+          <div class="form-row">
+            <label>New Password</label>
+            <input type="password" id="newPassword" placeholder="Enter new password (min 6 chars)">
+          </div>
+          <div class="form-row">
+            <label>Confirm New Password</label>
+            <input type="password" id="confirmPassword" placeholder="Confirm new password">
+          </div>
+          <button class="btn btn-primary" id="changePasswordBtn">🔐 Change Password</button>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /app -->
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Helpers ----
+    async function api(method, path, body = null) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch('/api/admin' + path, opts);
+      if (res.status === 401) { window.location.href = '/login.html'; return null; }
+      return res.json();
+    }
+
+    function toast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + type + ' show';
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ---- Navigation ----
+    document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        const section = item.dataset.section;
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('section-' + section).classList.add('active');
+
+        // Load data when switching tabs
+        if (section === 'dashboard') loadStatus();
+        if (section === 'settings') loadConfig();
+        if (section === 'conversations') loadChats();
+      });
+    });
+
+    // ---- Logout ----
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await api('POST', '/logout');
+      window.location.href = '/login.html';
+    });
+
+    // ---- Dashboard ----
+    async function loadStatus() {
+      const data = await api('GET', '/status');
+      if (!data) return;
+
+      // Bot toggle
+      const toggle = document.getElementById('botToggle');
+      const label = document.getElementById('botToggleLabel');
+      toggle.checked = data.botActive;
+      label.textContent = data.botActive ? 'Bot is ACTIVE' : 'Bot is PAUSED';
+      label.style.color = data.botActive ? '#22c55e' : '#ef4444';
+
+      // Status cards
+      const statusMap = {
+        connected: '<span class="badge green">Connected</span>',
+        configured: '<span class="badge green">Configured</span>',
+        disconnected: '<span class="badge red">Disconnected</span>',
+        not_configured: '<span class="badge orange">Not Set</span>',
+      };
+
+      document.getElementById('statusDb').innerHTML = statusMap[data.database] || data.database;
+      document.getElementById('statusAi').innerHTML = statusMap[data.geminiAI] || data.geminiAI;
+      document.getElementById('statusWa').innerHTML = statusMap[data.whatsapp] || data.whatsapp;
+    }
+
+    // Bot toggle
+    document.getElementById('botToggle').addEventListener('change', async function() {
+      const data = await api('POST', '/toggle', { active: this.checked });
+      if (data?.success) {
+        const label = document.getElementById('botToggleLabel');
+        label.textContent = data.botActive ? 'Bot is ACTIVE' : 'Bot is PAUSED';
+        label.style.color = data.botActive ? '#22c55e' : '#ef4444';
+        toast(data.botActive ? '🟢 Bot activated!' : '🔴 Bot paused');
+      } else {
+        this.checked = !this.checked;
+        toast(data?.error || 'Failed to toggle', 'error');
+      }
+    });
+
+    // ---- Settings ----
+    const configFields = [
+      'WHATSAPP_ACCESS_TOKEN',
+      'WHATSAPP_PHONE_NUMBER_ID',
+      'META_VERIFY_TOKEN',
+      'GEMINI_API_KEY',
+      'SYSTEM_PROMPT',
+    ];
+
+    async function loadConfig() {
+      const data = await api('GET', '/config');
+      if (!data?.config) return;
+      for (const key of configFields) {
+        const el = document.getElementById('cfg-' + key);
+        if (el) el.value = data.config[key] || '';
+      }
+    }
+
+    document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+      const updates = {};
+      for (const key of configFields) {
+        const el = document.getElementById('cfg-' + key);
+        if (el) updates[key] = el.value;
+      }
+
+      const data = await api('PUT', '/config', updates);
+      if (data?.success) {
+        toast('✅ Settings saved successfully!');
+      } else {
+        toast(data?.error || 'Failed to save', 'error');
+      }
+    });
+
+    // ---- Conversations ----
+    async function loadChats() {
+      const data = await api('GET', '/chats');
+      const list = document.getElementById('chatList');
+
+      if (!data?.chats || data.chats.length === 0) {
+        list.innerHTML = '<div class="no-chats"><div class="icon">💬</div><p>No conversations yet.</p><p style="margin-top:8px;font-size:13px;">Messages will appear here once customers start chatting.</p></div>';
+        return;
+      }
+
+      list.innerHTML = data.chats.map(chat => `
+        <li class="chat-list-item" data-userid="${chat.userId}">
+          <div class="chat-avatar">📱</div>
+          <div class="chat-info">
+            <div class="chat-name">${chat.userId}</div>
+            <div class="chat-preview">${chat.lastMessage || ''}</div>
+          </div>
+          <div class="chat-meta">
+            <div class="chat-time">${formatTime(chat.lastTime)}</div>
+            <div class="chat-count">${chat.messageCount} msgs</div>
+          </div>
+        </li>
+      `).join('');
+
+      // Click to view detail
+      list.querySelectorAll('.chat-list-item').forEach(item => {
+        item.addEventListener('click', () => openChat(item.dataset.userid));
+      });
+    }
+
+    async function openChat(userId) {
+      document.getElementById('chatListView').style.display = 'none';
+      document.getElementById('chatDetailView').style.display = 'block';
+      document.getElementById('chatDetailTitle').textContent = userId;
+
+      const data = await api('GET', '/chats/' + encodeURIComponent(userId));
+      const container = document.getElementById('messagesContainer');
+
+      if (!data?.messages || data.messages.length === 0) {
+        container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No messages found.</p>';
+        return;
+      }
+
+      container.innerHTML = data.messages.map(msg => `
+        <div class="message ${msg.role}">
+          <div class="bubble">${escapeHtml(msg.parts[0].text)}</div>
+        </div>
+      `).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    document.getElementById('backToList').addEventListener('click', () => {
+      document.getElementById('chatDetailView').style.display = 'none';
+      document.getElementById('chatListView').style.display = 'block';
+    });
+
+    // ---- Account ----
+    document.getElementById('changePasswordBtn').addEventListener('click', async () => {
+      const current = document.getElementById('currentPassword').value;
+      const newPw = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('confirmPassword').value;
+
+      if (!current || !newPw) { toast('Please fill all fields', 'error'); return; }
+      if (newPw !== confirm) { toast('New passwords do not match', 'error'); return; }
+
+      const data = await api('PUT', '/change-password', { currentPassword: current, newPassword: newPw });
+      if (data?.success) {
+        toast('🔐 Password changed successfully!');
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+      } else {
+        toast(data?.error || 'Failed to change password', 'error');
+      }
+    });
+
+    // ---- Utilities ----
+    function formatTime(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      const now = new Date();
+      if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ---- Initial Load ----
+    loadStatus();
+  </script>
+</body>
+</html>
