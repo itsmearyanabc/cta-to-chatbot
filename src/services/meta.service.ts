@@ -20,7 +20,7 @@ export class MetaService {
     }
 
     try {
-      const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
+      const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
 
       await axios.post(url, {
         messaging_product: 'whatsapp',
