@@ -66,6 +66,13 @@ export class ConfigService {
   private static async seedDefaults(): Promise<void> {
     if (!pool) return;
 
+    // Placeholder values that indicate "not yet configured"
+    const placeholders = [
+      'your_whatsapp_access_token',
+      'your_whatsapp_phone_number_id',
+      'your_gemini_api_key',
+    ];
+
     const defaults: Record<string, string> = {
       WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN || 'your_whatsapp_access_token',
       WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || 'your_whatsapp_phone_number_id',
@@ -76,10 +83,22 @@ export class ConfigService {
     };
 
     for (const [key, value] of Object.entries(defaults)) {
-      await pool.query(
-        'INSERT IGNORE INTO bot_config (config_key, config_value) VALUES (?, ?)',
-        [key, value]
-      );
+      // If the env value is a real credential (not a placeholder), always upsert it
+      // so that DB placeholder values get replaced on redeploy.
+      const isReal = !placeholders.includes(value);
+
+      if (isReal) {
+        await pool.query(
+          'INSERT INTO bot_config (config_key, config_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE config_value = IF(config_value IN (?), VALUES(config_value), config_value)',
+          [key, value, placeholders]
+        );
+      } else {
+        // Only insert if the key doesn't exist yet (first-time seed)
+        await pool.query(
+          'INSERT IGNORE INTO bot_config (config_key, config_value) VALUES (?, ?)',
+          [key, value]
+        );
+      }
     }
   }
 
